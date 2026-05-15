@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-public class SugarcaneListener implements Listener {
+public class SugarCaneListener implements Listener {
 
     private static final List<Material> AIR_TYPES = Arrays.asList(
             Material.AIR, Material.CAVE_AIR, Material.VOID_AIR
@@ -25,7 +25,7 @@ public class SugarcaneListener implements Listener {
     private final JavaPlugin plugin;
     private final Random random = new Random();
 
-    public SugarcaneListener(JavaPlugin plugin) {
+    public SugarCaneListener(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 

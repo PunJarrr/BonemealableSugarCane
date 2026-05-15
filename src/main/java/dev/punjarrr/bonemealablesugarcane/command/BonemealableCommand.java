@@ -1,12 +1,13 @@
 package dev.punjarrr.bonemealablesugarcane.command;
 
-import dev.punjarrr.bonemealablesugarcane.BonemealableSugarcane;
+import dev.punjarrr.bonemealablesugarcane.BonemealableSugarCane;
 import dev.punjarrr.bonemealablesugarcane.lang.LanguageManager;
 import dev.punjarrr.bonemealablesugarcane.util.Logger;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,14 +16,14 @@ import java.util.List;
 
 public class BonemealableCommand implements CommandExecutor, TabCompleter {
 
-    private final BonemealableSugarcane plugin;
+    private final BonemealableSugarCane plugin;
 
-    public BonemealableCommand(BonemealableSugarcane plugin) {
+    public BonemealableCommand(BonemealableSugarCane plugin) {
         this.plugin = plugin;
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(@NonNull CommandSender sender, @NonNull Command command, @NonNull String label, String[] args) {
         if (args.length == 0) {
             LanguageManager.send(sender, "command.help", "label", label);
             return true;
@@ -80,7 +81,7 @@ public class BonemealableCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+    public List<String> onTabComplete(@NonNull CommandSender sender, @NonNull Command command, @NonNull String alias, String[] args) {
         if (args.length == 1) {
             List<String> completions = new ArrayList<>(Arrays.asList("reload", "version", "info"));
             List<String> result = new ArrayList<>();

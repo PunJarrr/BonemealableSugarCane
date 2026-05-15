@@ -27,6 +27,6 @@ tasks {
     }
 
     jar {
-        archiveFileName.set("BonemealableSugarcane-${version}.jar")
+        archiveFileName.set("BonemealableSugarCane-${version}.jar")
     }
 }

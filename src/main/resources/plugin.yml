@@ -1,7 +1,7 @@
 name: BonemealableSugarcane
 version: '${version}'
 
-main: dev.punjarrr.bonemealablesugarcane.BonemealableSugarcane
+main: dev.punjarrr.bonemealablesugarcane.BonemealableSugarCane
 api-version: '1.20'
 load: POSTWORLD
 

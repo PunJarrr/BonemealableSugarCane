@@ -2,17 +2,17 @@ package dev.punjarrr.bonemealablesugarcane;
 
 import dev.punjarrr.bonemealablesugarcane.command.BonemealableCommand;
 import dev.punjarrr.bonemealablesugarcane.lang.LanguageManager;
-import dev.punjarrr.bonemealablesugarcane.listener.SugarcaneListener;
+import dev.punjarrr.bonemealablesugarcane.listener.SugarCaneListener;
 import dev.punjarrr.bonemealablesugarcane.util.Logger;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
 
-public final class BonemealableSugarcane extends JavaPlugin {
+public final class BonemealableSugarCane extends JavaPlugin {
 
-    private static BonemealableSugarcane instance;
-    private SugarcaneListener sugarcaneListener;
+    private static BonemealableSugarCane instance;
+    private SugarCaneListener sugarcaneListener;
 
     @Override
     public void onEnable() {
@@ -44,11 +44,11 @@ public final class BonemealableSugarcane extends JavaPlugin {
     }
 
     private void registerListeners() {
-        sugarcaneListener = new SugarcaneListener(this);
+        sugarcaneListener = new SugarCaneListener(this);
         getServer().getPluginManager().registerEvents(sugarcaneListener, this);
     }
 
-    public static BonemealableSugarcane getInstance() {
+    public static BonemealableSugarCane getInstance() {
         return instance;
     }
 }
