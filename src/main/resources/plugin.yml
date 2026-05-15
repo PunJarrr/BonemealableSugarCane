@@ -1,0 +1,26 @@
+name: BonemealableSugarcane
+version: '${version}'
+
+main: dev.punjarrr.bonemealablesugarcane.BonemealableSugarcane
+api-version: '1.20'
+load: POSTWORLD
+
+authors: [ PunJarrr ]
+description: Adds Bedrock-style bone meal support for sugar cane.
+
+commands:
+  bonemealablesugarcane:
+    description: Main BonemealableSugarcane command
+    usage: /bonemealablesugarcane [reload|version|info]
+    aliases: [ bsc ]
+    permission: bonemealablesugarcane.command
+    permission-message: "&cYou don't have permission to use this command."
+
+permissions:
+  bonemealablesugarcane.command:
+    description: Allows use of /bonemealablesugarcane
+    default: true
+
+  bonemealablesugarcane.reload:
+    description: Allows reloading config and translations
+    default: op
