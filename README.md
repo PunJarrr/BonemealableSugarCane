@@ -22,6 +22,7 @@ A lightweight Minecraft plugin that allows players to use bone meal on sugar can
 ## ✨ Features
 
 - Bone meal now works on sugar cane
+- Supported dispenser bone mealing
 - Choose between growing by 1 block or instantly to max height
 - Particles and sound effects on growth
 - 6 languages supported
