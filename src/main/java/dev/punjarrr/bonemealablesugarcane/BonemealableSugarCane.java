@@ -2,7 +2,9 @@ package dev.punjarrr.bonemealablesugarcane;
 
 import dev.punjarrr.bonemealablesugarcane.command.BonemealableCommand;
 import dev.punjarrr.bonemealablesugarcane.lang.LanguageManager;
+import dev.punjarrr.bonemealablesugarcane.listener.DispenserListener;
 import dev.punjarrr.bonemealablesugarcane.listener.SugarCaneListener;
+import dev.punjarrr.bonemealablesugarcane.util.ConfigUpdater;
 import dev.punjarrr.bonemealablesugarcane.util.Logger;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,11 +15,13 @@ public final class BonemealableSugarCane extends JavaPlugin {
 
     private static BonemealableSugarCane instance;
     private SugarCaneListener sugarcaneListener;
+    private DispenserListener dispenserListener;
 
     @Override
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        ConfigUpdater.migrate(this);
         LanguageManager.load(this);
         registerListeners();
 
@@ -38,6 +42,9 @@ public final class BonemealableSugarCane extends JavaPlugin {
         if (sugarcaneListener != null) {
             HandlerList.unregisterAll(sugarcaneListener);
         }
+        if (dispenserListener != null) {
+            HandlerList.unregisterAll(dispenserListener);
+        }
         reloadConfig();
         LanguageManager.load(this);
         registerListeners();
@@ -46,6 +53,8 @@ public final class BonemealableSugarCane extends JavaPlugin {
     private void registerListeners() {
         sugarcaneListener = new SugarCaneListener(this);
         getServer().getPluginManager().registerEvents(sugarcaneListener, this);
+        dispenserListener = new DispenserListener(this);
+        getServer().getPluginManager().registerEvents(dispenserListener, this);
     }
 
     public static BonemealableSugarCane getInstance() {

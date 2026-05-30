@@ -1,4 +1,4 @@
-name: BonemealableSugarcane
+name: BonemealableSugarCane
 version: '${version}'
 
 main: dev.punjarrr.bonemealablesugarcane.BonemealableSugarCane
