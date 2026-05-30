@@ -63,6 +63,11 @@ settings:
   # Play Sound
   # Whether to play a sound effect when sugar cane is bone-mealed.
   play-sound: true
+
+  # Dispenser Support
+  # Whether dispensers can bone meal sugar cane.
+  # When enabled, a dispenser facing a sugar cane column will grow it just like a player would.
+  dispenser-support: true
 ```
 
 ## 📚 Command & Permissions
