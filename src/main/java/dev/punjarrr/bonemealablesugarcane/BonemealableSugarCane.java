@@ -1,14 +1,17 @@
 package dev.punjarrr.bonemealablesugarcane;
 
 import dev.punjarrr.bonemealablesugarcane.command.BonemealableCommand;
+import dev.punjarrr.bonemealablesugarcane.config.ConfigUpdater;
 import dev.punjarrr.bonemealablesugarcane.lang.LanguageManager;
 import dev.punjarrr.bonemealablesugarcane.listener.DispenserListener;
 import dev.punjarrr.bonemealablesugarcane.listener.SugarCaneListener;
-import dev.punjarrr.bonemealablesugarcane.util.ConfigUpdater;
 import dev.punjarrr.bonemealablesugarcane.util.Logger;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 public final class BonemealableSugarCane extends JavaPlugin {
@@ -20,8 +23,8 @@ public final class BonemealableSugarCane extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        saveDefaultConfig();
-        ConfigUpdater.migrate(this);
+        updateConfigFile();
+        reloadConfig();
         LanguageManager.load(this);
         registerListeners();
 
@@ -48,6 +51,16 @@ public final class BonemealableSugarCane extends JavaPlugin {
         reloadConfig();
         LanguageManager.load(this);
         registerListeners();
+    }
+
+    /** Creates or updates config.yml on disk. Never overwrites a file that fails to parse. */
+    private void updateConfigFile() {
+        try (InputStream in = Objects.requireNonNull(getResource("config.yml"), "bundled config.yml")) {
+            String template = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            new ConfigUpdater(getDataFolder().toPath().resolve("config.yml"), template, getLogger()).update();
+        } catch (IOException e) {
+            throw new IllegalStateException("Couldn't read the bundled config.yml", e);
+        }
     }
 
     private void registerListeners() {
