@@ -52,12 +52,11 @@ public class ConfigUpdater {
             Logger.info("Config migrated to 1.0.1.");
         }
 
-        // Template for future migrations:
-        // if (isOlderThan(oldVersion, "1.0.2")) {
-        //     Object val = userValues.remove("settings.old-key");
-        //     if (val != null) userValues.put("settings.new-key", val);
-        //     Logger.info("Config migrated to 1.0.2.");
-        // }
+        if (isOlderThan(oldVersion, "1.0.2")) {
+            // No value transforms for 1.0.2 — max-height is a new key,
+            // so it simply keeps the default from the fresh config.
+            Logger.info("Config migrated to 1.0.2.");
+        }
 
         // Overwrite config.yml with the fresh default, user values spliced in.
         writeRefreshedConfig(plugin, userValues);

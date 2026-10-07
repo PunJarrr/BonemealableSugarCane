@@ -27,9 +27,15 @@ settings:
   #  - Dutch     (nl_NL)
   language: "en_US"
 
+  # Max Height
+  # The maximum height sugar cane can be bone-mealed to.
+  # Defaults to 3 (vanilla). If you've changed max-growth-height.cane in paper-world.yml,
+  # set this to match.
+  max-height: 3
+
   # Grow-by-one-block
   # If true, bone meal grows sugar cane by exactly 1 block.
-  # If false, bone meal grows sugar cane up to the maximum height of 3 blocks at once.
+  # If false, bone meal grows sugar cane up to max-height at once.
   grow-by-one-block: false
 
   # Spawn Particles
@@ -47,4 +53,4 @@ settings:
 
 # Leave these options alone unless you know what you're doing.
 config:
-  version: 1.0.1
+  version: 1.0.2

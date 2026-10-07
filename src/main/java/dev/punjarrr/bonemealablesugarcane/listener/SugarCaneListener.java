@@ -50,20 +50,22 @@ public class SugarCaneListener implements Listener {
             base = base.getRelative(BlockFace.DOWN);
         }
 
-        // Count the current height (vanilla max is 3)
+        int maxHeight = plugin.getConfig().getInt("settings.max-height", 3);
+
+        // Count the current height
         int length = 1;
         Block top = base;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < maxHeight - 1; i++) {
             Block above = top.getRelative(BlockFace.UP);
             if (above.getType() != Material.SUGAR_CANE) break;
             top = above;
             length++;
         }
 
-        if (length >= 3) return;
+        if (length >= maxHeight) return;
 
         boolean growByOne = plugin.getConfig().getBoolean("settings.grow-by-one-block", false);
-        int blocksToGrow = growByOne ? 1 : (3 - length);
+        int blocksToGrow = growByOne ? 1 : (maxHeight - length);
 
         boolean grew = false;
         for (int i = 0; i < blocksToGrow; i++) {
