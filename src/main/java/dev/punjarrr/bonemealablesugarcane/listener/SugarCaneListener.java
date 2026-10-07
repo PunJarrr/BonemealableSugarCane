@@ -1,109 +1,69 @@
 package dev.punjarrr.bonemealablesugarcane.listener;
 
-import dev.punjarrr.bonemealablesugarcane.config.Settings;
-import org.bukkit.*;
+import dev.punjarrr.bonemealablesugarcane.growth.CaneGrower;
+import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-import java.util.function.Supplier;
-
+/** Players right-clicking sugar cane with bone meal, from either hand. */
 public class SugarCaneListener implements Listener {
 
-    private static final List<Material> AIR_TYPES = Arrays.asList(
-            Material.AIR, Material.CAVE_AIR, Material.VOID_AIR
-    );
+    private final CaneGrower grower;
 
-    private final Supplier<Settings> settings;
-    private final Random random = new Random();
-
-    public SugarCaneListener(Supplier<Settings> settings) {
-        this.settings = settings;
+    public SugarCaneListener(CaneGrower grower) {
+        this.grower = grower;
     }
 
-    @EventHandler(ignoreCancelled = true)
+    // HIGH + ignoreCancelled: protection plugins at NORMAL or lower get to cancel first.
+    // The event fires for the off hand only when the main hand did nothing, so the main
+    // hand has priority, like vanilla. Sneaking doesn't matter for items, like vanilla.
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-        if (event.getHand() != EquipmentSlot.HAND) return;
-        if (event.getPlayer().isSneaking()) return;
+        if (event.useItemInHand() == Event.Result.DENY) return;
 
-        Block block = event.getClickedBlock();
-        if (block == null) return;
+        EquipmentSlot hand = event.getHand();
         ItemStack item = event.getItem();
-        if (item == null) return;
-        if (item.getType() != Material.BONE_MEAL) return;
-        if (block.getType() != Material.SUGAR_CANE) return;
+        Block block = event.getClickedBlock();
+        if (hand == null || item == null || item.getType() != Material.BONE_MEAL) return;
+        if (block == null || block.getType() != Material.SUGAR_CANE) return;
 
+        // Vanilla doesn't let players use bone meal in Adventure mode.
         Player player = event.getPlayer();
+        GameMode mode = player.getGameMode();
+        if (mode == GameMode.ADVENTURE || mode == GameMode.SPECTATOR) return;
 
-        // Walk down to the base of this sugar cane column
-        Block base = block;
-        while (base.getRelative(BlockFace.DOWN).getType() == Material.SUGAR_CANE) {
-            base = base.getRelative(BlockFace.DOWN);
+        if (grower.grow(block, player) != CaneGrower.Result.GROWN) return;
+
+        // Stops the server from going on to use the other hand's item in this same click.
+        event.setCancelled(true);
+
+        if (hand == EquipmentSlot.HAND) {
+            player.swingMainHand();
+        } else {
+            player.swingOffHand();
         }
 
-        int maxHeight = settings.get().maxHeight();
-
-        // Count the current height
-        int length = 1;
-        Block top = base;
-        for (int i = 0; i < maxHeight - 1; i++) {
-            Block above = top.getRelative(BlockFace.UP);
-            if (above.getType() != Material.SUGAR_CANE) break;
-            top = above;
-            length++;
-        }
-
-        if (length >= maxHeight) return;
-
-        boolean growByOne = settings.get().growByOneBlock();
-        int blocksToGrow = growByOne ? 1 : (maxHeight - length);
-
-        boolean grew = false;
-        for (int i = 0; i < blocksToGrow; i++) {
-            Block next = top.getRelative(BlockFace.UP);
-            if (!AIR_TYPES.contains(next.getType())) break;
-            next.setType(Material.SUGAR_CANE);
-            top = next;
-            grew = true;
-        }
-
-        if (!grew) return;
-
-        if (player.getGameMode() != GameMode.CREATIVE) {
-            if (item.getAmount() > 1) {
-                item.setAmount(item.getAmount() - 1);
+        if (mode != GameMode.CREATIVE) {
+            PlayerInventory inventory = player.getInventory();
+            ItemStack inHand = inventory.getItem(hand);
+            int left = inHand.getAmount() - 1;
+            if (left > 0) {
+                inHand.setAmount(left);
+                inventory.setItem(hand, inHand);
             } else {
-                player.getInventory().setItemInMainHand(null);
+                inventory.setItem(hand, null);
             }
-        }
-
-        World world = block.getWorld();
-
-        if (settings.get().effects()) {
-            double bx = block.getX();
-            double by = block.getY();
-            double bz = block.getZ();
-            for (int i = 0; i < 15; i++) {
-                world.spawnParticle(Particle.HAPPY_VILLAGER,
-                        bx + random.nextDouble(),
-                        by + random.nextDouble(),
-                        bz + random.nextDouble(),
-                        1);
-            }
-        }
-
-        if (settings.get().effects()) {
-            world.playSound(block.getLocation(), Sound.ITEM_BONE_MEAL_USE, 1.0f, 1.0f);
         }
     }
 }

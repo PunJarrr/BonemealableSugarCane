@@ -3,11 +3,13 @@ package dev.punjarrr.bonemealablesugarcane;
 import dev.punjarrr.bonemealablesugarcane.command.BonemealableCommand;
 import dev.punjarrr.bonemealablesugarcane.config.ConfigUpdater;
 import dev.punjarrr.bonemealablesugarcane.config.Settings;
+import dev.punjarrr.bonemealablesugarcane.growth.CaneGrower;
 import dev.punjarrr.bonemealablesugarcane.listener.DispenserListener;
 import dev.punjarrr.bonemealablesugarcane.listener.SugarCaneListener;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.IOException;
@@ -29,8 +31,10 @@ public final class BonemealableSugarCane extends JavaPlugin {
         Settings loaded = loadSettings();
         settings = loaded != null ? loaded : Settings.from(defaultsConfig(), getLogger());
 
-        getServer().getPluginManager().registerEvents(new SugarCaneListener(this::settings), this);
-        getServer().getPluginManager().registerEvents(new DispenserListener(this::settings), this);
+        PluginManager pluginManager = getServer().getPluginManager();
+        CaneGrower grower = new CaneGrower(this::settings, pluginManager);
+        pluginManager.registerEvents(new SugarCaneListener(grower), this);
+        pluginManager.registerEvents(new DispenserListener(this::settings, grower), this);
 
         BonemealableCommand executor = new BonemealableCommand(this);
         PluginCommand command = Objects.requireNonNull(getCommand("bonemealablesugarcane"));
