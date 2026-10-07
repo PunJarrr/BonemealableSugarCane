@@ -1,5 +1,6 @@
 package dev.punjarrr.bonemealablesugarcane.listener;
 
+import dev.punjarrr.bonemealablesugarcane.config.Settings;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -10,11 +11,11 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Supplier;
 
 public class SugarCaneListener implements Listener {
 
@@ -22,11 +23,11 @@ public class SugarCaneListener implements Listener {
             Material.AIR, Material.CAVE_AIR, Material.VOID_AIR
     );
 
-    private final JavaPlugin plugin;
+    private final Supplier<Settings> settings;
     private final Random random = new Random();
 
-    public SugarCaneListener(JavaPlugin plugin) {
-        this.plugin = plugin;
+    public SugarCaneListener(Supplier<Settings> settings) {
+        this.settings = settings;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -50,7 +51,7 @@ public class SugarCaneListener implements Listener {
             base = base.getRelative(BlockFace.DOWN);
         }
 
-        int maxHeight = plugin.getConfig().getInt("settings.max-height", 3);
+        int maxHeight = settings.get().maxHeight();
 
         // Count the current height
         int length = 1;
@@ -64,7 +65,7 @@ public class SugarCaneListener implements Listener {
 
         if (length >= maxHeight) return;
 
-        boolean growByOne = plugin.getConfig().getBoolean("settings.grow-by-one-block", false);
+        boolean growByOne = settings.get().growByOneBlock();
         int blocksToGrow = growByOne ? 1 : (maxHeight - length);
 
         boolean grew = false;
@@ -88,7 +89,7 @@ public class SugarCaneListener implements Listener {
 
         World world = block.getWorld();
 
-        if (plugin.getConfig().getBoolean("settings.spawn-particles", true)) {
+        if (settings.get().effects()) {
             double bx = block.getX();
             double by = block.getY();
             double bz = block.getZ();
@@ -101,7 +102,7 @@ public class SugarCaneListener implements Listener {
             }
         }
 
-        if (plugin.getConfig().getBoolean("settings.play-sound", true)) {
+        if (settings.get().effects()) {
             world.playSound(block.getLocation(), Sound.ITEM_BONE_MEAL_USE, 1.0f, 1.0f);
         }
     }

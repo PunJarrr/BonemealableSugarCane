@@ -1,5 +1,6 @@
 package dev.punjarrr.bonemealablesugarcane.listener;
 
+import dev.punjarrr.bonemealablesugarcane.config.Settings;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -9,11 +10,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Supplier;
 
 public class DispenserListener implements Listener {
 
@@ -21,17 +22,17 @@ public class DispenserListener implements Listener {
             Material.AIR, Material.CAVE_AIR, Material.VOID_AIR
     );
 
-    private final JavaPlugin plugin;
+    private final Supplier<Settings> settings;
     private final Random random = new Random();
 
-    public DispenserListener(JavaPlugin plugin) {
-        this.plugin = plugin;
+    public DispenserListener(Supplier<Settings> settings) {
+        this.settings = settings;
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onDispense(BlockDispenseEvent event) {
         if (event.getItem().getType() != Material.BONE_MEAL) return;
-        if (!plugin.getConfig().getBoolean("settings.dispenser-support", true)) return;
+        if (!settings.get().dispenserSupport()) return;
         if (event.getBlock().getType() != Material.DISPENSER) return;
 
         Block dispenser = event.getBlock();
@@ -49,7 +50,7 @@ public class DispenserListener implements Listener {
             base = base.getRelative(BlockFace.DOWN);
         }
 
-        int maxHeight = plugin.getConfig().getInt("settings.max-height", 3);
+        int maxHeight = settings.get().maxHeight();
 
         // Count current height
         int length = 1;
@@ -63,7 +64,7 @@ public class DispenserListener implements Listener {
 
         if (length >= maxHeight) return;
 
-        boolean growByOne = plugin.getConfig().getBoolean("settings.grow-by-one-block", false);
+        boolean growByOne = settings.get().growByOneBlock();
         int blocksToGrow = growByOne ? 1 : (maxHeight - length);
 
         boolean grew = false;
@@ -94,7 +95,7 @@ public class DispenserListener implements Listener {
 
         World world = target.getWorld();
 
-        if (plugin.getConfig().getBoolean("settings.spawn-particles", true)) {
+        if (settings.get().effects()) {
             double bx = target.getX();
             double by = target.getY();
             double bz = target.getZ();
@@ -107,7 +108,7 @@ public class DispenserListener implements Listener {
             }
         }
 
-        if (plugin.getConfig().getBoolean("settings.play-sound", true)) {
+        if (settings.get().effects()) {
             world.playSound(target.getLocation(), Sound.ITEM_BONE_MEAL_USE, 1.0f, 1.0f);
         }
     }

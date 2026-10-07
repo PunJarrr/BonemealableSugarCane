@@ -135,6 +135,60 @@ class ConfigUpdaterTest {
     }
 
     @Test
+    void migratesFrom102() throws IOException {
+        Files.writeString(configFile, """
+                settings:
+                  language: "de_DE"
+                  max-height: 5
+                  grow-by-one-block: true
+                  spawn-particles: false
+                  play-sound: true
+                  dispenser-support: false
+                config:
+                  version: 1.0.2
+                """);
+        Path translations = Files.createDirectory(dir.resolve("translations"));
+        Path german = Files.writeString(translations.resolve("de_DE.properties"), "x=y");
+
+        assertEquals(ConfigUpdater.Result.UPDATED, update());
+        YamlConfiguration result = loadResult();
+        assertEquals(5, result.getInt("settings.max-height"));
+        assertTrue(result.getBoolean("settings.grow-by-one-block"));
+        assertTrue(result.getBoolean("settings.effects"));
+        assertFalse(result.getBoolean("settings.dispenser-support"));
+        assertFalse(result.contains("settings.language"));
+        assertFalse(result.contains("settings.spawn-particles"));
+        assertFalse(result.contains("settings.play-sound"));
+        assertTrue(result.getString("messages.no-permission").startsWith("&c"));
+        assertEquals("1.1.0", result.getString("config.version"));
+
+        assertTrue(Files.exists(german), "translation files must not be deleted");
+        assertTrue(logs.stream().anyMatch(r -> r.getMessage().contains("translations folder")));
+        assertTrue(logs.stream().anyMatch(r -> r.getMessage().contains("de_DE")));
+    }
+
+    @Test
+    void effectsOffOnlyWhenParticlesAndSoundWereBothOff() throws IOException {
+        Files.writeString(configFile, """
+                settings:
+                  spawn-particles: false
+                  play-sound: false
+                config:
+                  version: 1.0.1
+                """);
+        update();
+        assertFalse(loadResult().getBoolean("settings.effects"));
+    }
+
+    @Test
+    void effectsOnWhenOldKeysWereMissing() throws IOException {
+        Files.writeString(configFile, "settings:\n  grow-by-one-block: false\n");
+        update();
+        assertTrue(loadResult().getBoolean("settings.effects"));
+        assertTrue(logs.stream().noneMatch(r -> r.getMessage().contains("translations folder")));
+    }
+
+    @Test
     void versionComparison() {
         assertTrue(ConfigUpdater.isOlderThan("1.0.2", "1.1.0"));
         assertTrue(ConfigUpdater.isOlderThan("1.0", "1.0.1"));

@@ -2,19 +2,20 @@ name: BonemealableSugarCane
 version: '${version}'
 
 main: dev.punjarrr.bonemealablesugarcane.BonemealableSugarCane
-api-version: '1.20'
+# The oldest supported version. Servers older than 1.20.5 refuse to load the plugin with a clear message.
+api-version: '1.20.5'
 load: POSTWORLD
 
 authors: [ PunJarrr ]
 description: Adds Bedrock-style bone meal support for sugar cane.
+website: https://modrinth.com/plugin/bonemealable-sugar-cane
 
 commands:
   bonemealablesugarcane:
-    description: Main BonemealableSugarcane command
-    usage: /bonemealablesugarcane [reload|version|info]
+    description: Main BonemealableSugarCane command
+    usage: /bonemealablesugarcane [help|reload|version|info]
     aliases: [ bsc ]
     permission: bonemealablesugarcane.command
-    permission-message: "&cYou don't have permission to use this command."
 
 permissions:
   bonemealablesugarcane.command:
@@ -22,5 +23,5 @@ permissions:
     default: true
 
   bonemealablesugarcane.reload:
-    description: Allows reloading config and translations
+    description: Allows reloading the config
     default: op

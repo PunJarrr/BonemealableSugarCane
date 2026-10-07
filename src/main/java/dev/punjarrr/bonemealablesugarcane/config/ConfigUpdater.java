@@ -75,8 +75,7 @@ public final class ConfigUpdater {
             try {
                 user.loadFromString(Files.readString(configFile, StandardCharsets.UTF_8));
             } catch (InvalidConfigurationException e) {
-                logger.severe("config.yml has a syntax error, so it was NOT updated and the defaults are used. "
-                        + "Fix the error, then run /bsc reload. Details: " + e.getMessage());
+                logger.severe("config.yml has a syntax error and was left unchanged: " + e.getMessage());
                 return Result.INVALID;
             }
 
@@ -127,7 +126,24 @@ public final class ConfigUpdater {
      * has set, keyed by dotted path (without {@code config.version}).
      */
     private void migrate(String oldVersion, Map<String, Object> values) {
-        // No blocks yet.
+        if (isOlderThan(oldVersion, "1.1.0")) {
+            // spawn-particles and play-sound became one key, because the vanilla bone meal
+            // effect always plays both. Keep effects on if either one was on.
+            Object particles = values.remove("settings.spawn-particles");
+            Object sound = values.remove("settings.play-sound");
+            values.put("settings.effects", !Boolean.FALSE.equals(particles) || !Boolean.FALSE.equals(sound));
+
+            // Translations were removed; messages are now English text in config.yml.
+            Object language = values.remove("settings.language");
+            if (language != null && !"en_US".equalsIgnoreCase(language.toString())) {
+                logger.info("The 'language' setting (" + language + ") was removed. Messages are now in the "
+                        + "'messages' section of config.yml, where you can translate them.");
+            }
+            if (Files.isDirectory(configFile.resolveSibling("translations"))) {
+                logger.info("The translations folder is no longer used. You can delete it; "
+                        + "your files there were left untouched.");
+            }
+        }
     }
 
     // -------------------------------------------------------------------------
