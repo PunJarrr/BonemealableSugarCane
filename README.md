@@ -21,11 +21,16 @@ A lightweight Minecraft plugin that allows players to use bone meal on sugar can
 
 ## ✨ Features
 
-- Bone meal now works on sugar cane
+- Bone meal now works on sugar cane, from either hand, and from dispensers
+- Feels like vanilla: the real bone meal particles and sound, hand swing, no bone meal used in Creative, not usable in Adventure mode
 - Choose between growing by 1 block or instantly to max height
-- Particles and sound effects on growth
-- 6 languages supported
+- Respects protection plugins (fires `BlockFertilizeEvent`), so cane in someone else's claim can't be grown
 - Lightweight and performance-friendly
+
+## 🧩 Compatibility
+
+- Paper, Spigot and Purpur
+- Minecraft 1.20.5 to 26.x
 
 ## 🔍 Showcase
 
@@ -33,52 +38,61 @@ A lightweight Minecraft plugin that allows players to use bone meal on sugar can
 
 ## ⚙️ Configuration
 
-- All settings are configurable in ```config.yml```.
-- All messages are fully customizable in **translation files** using [MiniMessage](https://docs.papermc.io/adventure/minimessage/format/#standard-tags) format.
+- All settings are in ```config.yml```.
+- Messages are in the `messages` section of ```config.yml``` and use `&` color codes, so you can reword or translate them.
+- When you update the plugin, your settings are kept and a backup of your old ```config.yml``` is saved next to it.
 
 ```yaml
 # Plugin Settings
 settings:
 
-  # Language
-  # Change the language of the plugin.
-  # Supported languages:
-  #  - English   (en_US)
-  #  - German    (de_DE)
-  #  - French    (fr_FR)
-  #  - Finnish   (fi_FI)
-  #  - Polish    (pl_PL)
-  #  - Dutch     (nl_NL)
-  language: "en_US"
+  # Max Height
+  # The tallest a sugar cane column can be grown with bone meal. Must be 1 or higher.
+  # Defaults to 3 (vanilla). If you've changed max-growth-height.cane in Paper's
+  # paper-world-defaults.yml, set this to match.
+  max-height: 3
 
   # Grow-by-one-block
-  # If true, bone meal grows sugar cane by exactly 1 block.
-  # If false, bone meal grows sugar cane up to the maximum height of 3 blocks at once.
+  # If true, each bone meal grows sugar cane by exactly 1 block.
+  # If false, one bone meal grows sugar cane straight to max-height.
   grow-by-one-block: false
 
-  # Spawn Particles
-  # Whether to spawn particles when sugar cane is bone-mealed.
-  spawn-particles: true
+  # Effects
+  # Whether to show the vanilla bone meal particles and sound when sugar cane grows.
+  # (Replaces spawn-particles and play-sound from 1.0.x.)
+  effects: true
 
-  # Play Sound
-  # Whether to play a sound effect when sugar cane is bone-mealed.
-  play-sound: true
+  # Dispenser Support
+  # Whether dispensers can bone meal sugar cane.
+  # When enabled, a dispenser facing a sugar cane column grows it just like a player would.
+  dispenser-support: true
+
+# Messages
+# Use & color codes (e.g. &a, &c, &l). Words in {braces} are filled in by the plugin.
+# Set a message to "" to turn it off.
+messages:
+  no-permission: "&cYou don't have permission to do that."
+  unknown-subcommand: "&cUnknown subcommand '&f{subcommand}&c'. Use &f/{label} help&c to see all commands."
+  reload-success: "&aConfig reloaded."
+  reload-failed: "&cCouldn't reload: config.yml has an error, so the previous settings are still active. Check the console for details."
 ```
 
 ## 📚 Command & Permissions
 
 - Commands
 
-| Command                    | Permission                          | Description                       |
-| -------------------------- | ----------------------------------- | --------------------------------- |
-| `/bonemealablesugarcane`   | `bonemealablesugarcane.command`     | Base plugin command.              |
-| `/bonemealablesugarcane reload` | `bonemealablesugarcane.reload` | Reload config and translations.   |
+| Command                           | Permission                      | Description                     |
+| --------------------------------- | ------------------------------- | ------------------------------- |
+| `/bonemealablesugarcane help`     | `bonemealablesugarcane.command` | List the commands.              |
+| `/bonemealablesugarcane version`  | `bonemealablesugarcane.command` | Show the plugin version.        |
+| `/bonemealablesugarcane info`     | `bonemealablesugarcane.command` | Show plugin information.        |
+| `/bonemealablesugarcane reload`   | `bonemealablesugarcane.reload`  | Reload `config.yml`.            |
 
 > Alias: `/bsc`
 
 - Permissions
 
-| Permission                          | Description                          | Default   |
-| ----------------------------------- | ------------------------------------ | --------- |
-| `bonemealablesugarcane.command`     | Allows use of `/bonemealablesugarcane`. | `true` |
-| `bonemealablesugarcane.reload`      | Allows reloading config and translations. | `op` |
+| Permission                          | Description                             | Default   |
+| ----------------------------------- | --------------------------------------- | --------- |
+| `bonemealablesugarcane.command`     | Allows use of `/bonemealablesugarcane`. | `true`    |
+| `bonemealablesugarcane.reload`      | Allows reloading the config.            | `op`      |

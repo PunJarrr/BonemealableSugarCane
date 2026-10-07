@@ -1,6 +1,6 @@
 import xyz.jpenilla.runpaper.task.RunServer
 
-version = "1.0.2"
+version = "1.1.0"
 
 plugins {
     id("java-library")

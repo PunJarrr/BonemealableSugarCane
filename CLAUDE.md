@@ -2,47 +2,62 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Build
+## Build and test
 
 ```bash
-./gradlew build
+./gradlew build      # compiles, runs the unit tests, builds the jar
+./gradlew test       # unit tests only
 ```
 
-Output jar: `build/libs/BonemealableSugarCane-<version>.jar`
+Output jar: `build/libs/BonemealableSugarCane-<version>.jar`. There is no lint step.
 
-No test suite exists. There is no lint step.
+Unit tests (JUnit 5, test-only dependency) cover the server-free logic: height math, config migration and template splicing, settings validation.
+
+Test servers (run-paper, each in `run/<version>` with the right Java; foojay downloads missing JDKs):
+
+| Task | Paper | Java |
+|---|---|---|
+| `./gradlew runServer` | 26.2 | 25 |
+| `./gradlew runServer1_21_11` | 1.21.11 | 21 |
+| `./gradlew runServer1_20_6` | 1.20.6 (oldest supported) | 21 |
+
+Headless smoke test: `(sleep 60; echo stop) | ./gradlew <task> --console=plain > build/smoke/<v>.log`. Give a fresh run dir enough time: Paper 26.2 throws if `stop` arrives before the world has finished generating.
 
 ## Project overview
 
-A Paper/Spigot plugin that adds Bedrock-style bone meal support for sugar cane. Players (and dispensers) can right-click sugar cane with bone meal to grow it up to a configurable max height.
+A Paper/Spigot plugin that adds Bedrock-style bone meal support for sugar cane. Players (either hand) and dispensers can bone meal sugar cane to grow it up to a configurable max height, as close to vanilla bone meal as the Spigot API allows.
 
-Targets Spigot API `1.20.5`. Built with Java 21.
+Supports Spigot, Paper and Purpur 1.20.5 to 26.x. Compiles against Spigot API `1.20.5` (the oldest supported version) with Java 21. No runtime dependencies.
 
 ## Architecture
 
-**Entry point** — `BonemealableSugarCane.java` loads config, runs `ConfigUpdater.migrate()`, loads translations via `LanguageManager`, registers both listeners, and wires up the command. `/bsc reload` unregisters listeners, reloads config + lang, then re-registers them.
+**Entry point.** `BonemealableSugarCane.java` runs `ConfigUpdater`, builds a `Settings` snapshot, creates one `CaneGrower`, registers both listeners once and wires up the command. `/bsc reload` builds a new snapshot and swaps it in; listeners are never re-registered. If config.yml can't be parsed, the previous snapshot (or the bundled defaults at startup) stays active.
 
-**Listeners** — `SugarCaneListener` handles `PlayerInteractEvent`; `DispenserListener` handles `BlockDispenseEvent`. Both walk down to the base of the sugar cane column, count its height, compare against `settings.max-height`, then grow upward. Dispenser events are always cancelled to prevent bone meal ejection as an item entity; bone meal is consumed manually from the dispenser inventory.
+**Settings.** `config/Settings` is an immutable record validated on load (wrong types or `max-height < 1` log a warning and use the default). `config/Messages` holds the `messages` section with `&` codes translated. Listeners read the current snapshot through a `Supplier<Settings>`.
 
-**Config versioning** — `ConfigUpdater.migrate()` snapshots the user's current values, rewrites `config.yml` from the bundled default (preserving comments/ASCII art), then splices the user values back in. Each version bump gets an `isOlderThan` block. New keys need no migration code — they inherit the default.
+**Growth.** `growth/CaneGrower` holds all growth logic for both listeners: find the column's base, count height (capped at max-height), find free air above (stopping at the world height limit), fire `BlockFertilizeEvent`, apply the remaining states bottom-up, play `Effect.BONE_MEAL_USE` (15). `growth/GrowthMath` is the pure, unit-tested height math.
 
-**Translations** — `LanguageManager` loads all `.properties` files from `src/main/resources/translations/` into an `EnumMap<Language, Properties>` cache. Placeholders use `{key}` syntax; `send()` splits on `\n` for multi-line messages. Falls back to `en_US` for missing keys.
+**Listeners.** Both run at `HIGH` with `ignoreCancelled = true`.
+- `SugarCaneListener` (`PlayerInteractEvent`) respects `useItemInHand() == DENY`, skips Adventure and Spectator mode, and on success cancels the event (so the other hand isn't used too), swings the hand and uses up bone meal outside Creative.
+- `DispenserListener` (`BlockDispenseEvent`) cancels only on success and lowers the amount of the first `isSimilar` stack in place. Never clear the slot with `setItem(null)`: after a cancelled dispense the server writes the dispensed stack back into its slot, which would give the bone meal back. When nothing grows, the event is left alone so vanilla plays its fail click and keeps the bone meal. A cancelled dispense already gets a click and smoke from the server, so don't play those yourself.
+
+**Config updates.** `config/ConfigUpdater` leaves config.yml alone when the version is current and no keys are missing. Otherwise it backs up the file (`config-backup-<old>-<time>.yml`), runs `migrate()`, renders the bundled config.yml with the user's values spliced in (`config/YamlTemplate`, any nesting depth, scalars only), checks that the result parses and writes it atomically. A file that fails to parse, or comes from a newer version, is never written.
 
 ## Version bump checklist
 
-When bumping the version (e.g. `1.0.2` → `1.0.3`):
+When bumping the version (e.g. `1.1.0` → `1.1.1`):
 
-1. `build.gradle.kts` — `version`
-2. `src/main/resources/config.yml` — `config.version`
-3. All `src/main/resources/translations/*.properties` — `meta.version`
-4. `ConfigUpdater.java` — add an `isOlderThan("x.y.z")` migration block
+1. `build.gradle.kts`: `version`
+2. `src/main/resources/config.yml`: `config.version`
+3. `CHANGELOG.md`: add an entry
+4. `ConfigUpdater.migrate()`: add an `isOlderThan("x.y.z")` block **only** if an existing value must be renamed or transformed. New keys need no code.
 
 ## Adding a new config key
 
-Add the key to `config.yml` with its default value. No migration code needed — `ConfigUpdater` automatically preserves existing user values and fills in new keys from the bundled default. Update the `grow-by-one-block` description comment if the new key relates to growth behaviour.
+Add the key to `config.yml` with its default value and a comment, then read and validate it in `Settings.from` (or add the message key to `Messages`). No migration code is needed: `ConfigUpdater` keeps existing user values and fills in new keys from the bundled default. Keep the template to scalar values; `YamlTemplate` doesn't support lists or maps. Add a test to `SettingsTest` or `ConfigUpdaterTest`.
 
-## Adding a new language
+## Known differences from vanilla
 
-1. Add an entry to the `Language` enum (`lang/Language.java`)
-2. Create `src/main/resources/translations/<code>.properties` (copy `en_US.properties` as a template)
-3. Add the locale code to the supported languages comment in `config.yml`
+- No sculk vibration (`World#sendGameEvent` is Paper-only, not in Spigot 1.20.5).
+- Adventure mode is blocked entirely; Spigot 1.20.5 has no API for the `can_place_on` component.
+- On Paper, a successful dispense plays the fail click's pitch. The server picks the click, and changing it would need packet interception.
