@@ -29,7 +29,12 @@ public final class BonemealableSugarCane extends JavaPlugin {
     public void onEnable() {
         bundledConfig = readBundledConfig();
         Settings loaded = loadSettings();
-        settings = loaded != null ? loaded : Settings.from(defaultsConfig(), getLogger());
+        if (loaded == null) {
+            YamlConfiguration empty = new YamlConfiguration();
+            empty.setDefaults(defaultsConfig());
+            loaded = Settings.from(empty, getLogger());
+        }
+        settings = loaded;
 
         PluginManager pluginManager = getServer().getPluginManager();
         CaneGrower grower = new CaneGrower(this::settings, pluginManager);
