@@ -2,7 +2,9 @@ package dev.punjarrr.bonemealablesugarcane.growth;
 
 import dev.punjarrr.bonemealablesugarcane.config.Settings;
 import org.bukkit.Effect;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -30,6 +32,13 @@ public final class CaneGrower {
 
     // Vanilla bone meal sends this many particles (BoneMealItem: levelEvent(1505, pos, 15)).
     private static final int PARTICLE_COUNT = 15;
+
+    // Effect.BONE_MEAL_USE (vanilla level event 1505: particles and sound) is in the API from 1.19.4.
+    // Older servers only have VILLAGER_PLANT_GROW (2005: the same particles, no sound), so the sound
+    // is played separately there. Looked up by name because the plugin is compiled against 1.17.
+    private static final Effect BONE_MEAL_EFFECT = effect("BONE_MEAL_USE");
+    private static final Effect PARTICLES_ONLY_EFFECT = effect("VILLAGER_PLANT_GROW");
+    private static final String BONE_MEAL_SOUND = "minecraft:item.bone_meal.use";
 
     private final Supplier<Settings> settings;
     private final PluginManager pluginManager;
@@ -100,8 +109,25 @@ public final class CaneGrower {
         if (s.effects()) {
             // The vanilla bone meal level event: the client draws the particles over the block's
             // shape and plays the sound on the Blocks volume slider.
-            world.playEffect(clicked.getLocation(), Effect.BONE_MEAL_USE, PARTICLE_COUNT);
+            playBoneMealEffect(world, clicked.getLocation());
         }
         return Result.GROWN;
+    }
+
+    private static void playBoneMealEffect(World world, Location location) {
+        if (BONE_MEAL_EFFECT != null) {
+            world.playEffect(location, BONE_MEAL_EFFECT, PARTICLE_COUNT);
+        } else if (PARTICLES_ONLY_EFFECT != null) {
+            world.playEffect(location, PARTICLES_ONLY_EFFECT, PARTICLE_COUNT);
+            world.playSound(location.clone().add(0.5, 0.5, 0.5), BONE_MEAL_SOUND, SoundCategory.BLOCKS, 1.0f, 1.0f);
+        }
+    }
+
+    private static Effect effect(String name) {
+        try {
+            return Effect.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

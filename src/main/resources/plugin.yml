@@ -2,12 +2,15 @@ name: BonemealableSugarCane
 version: '${version}'
 
 main: dev.punjarrr.bonemealablesugarcane.BonemealableSugarCane
-# The oldest supported version. Servers older than 1.20.5 refuse to load the plugin with a clear message.
-api-version: '1.20.5'
+# The oldest supported version. Servers older than 1.17 refuse to load the plugin with a clear message.
+api-version: '1.17'
 load: POSTWORLD
+# Safe on Folia: the plugin only changes blocks inside block events, which already run on the
+# thread that owns that region, and it schedules nothing.
+folia-supported: true
 
 authors: [ PunJarrr ]
-description: Adds Bedrock-style bone meal support for sugar cane.
+description: '${description}'
 website: https://modrinth.com/plugin/bonemealable-sugar-cane
 
 commands:
