@@ -16,35 +16,36 @@
 # Plugin Settings
 settings:
 
-  # Language
-  # Change the language of the plugin.
-  # Supported languages:
-  #  - English   (en_US)
-  #  - German    (de_DE)
-  #  - French    (fr_FR)
-  #  - Finnish   (fi_FI)
-  #  - Polish    (pl_PL)
-  #  - Dutch     (nl_NL)
-  language: "en_US"
+  # Max Height
+  # The tallest a sugar cane column can be grown with bone meal. Must be 1 or higher.
+  # Defaults to 3 (vanilla). If you've changed max-growth-height.cane in Paper's
+  # paper-world-defaults.yml, set this to match.
+  max-height: 3
 
   # Grow-by-one-block
-  # If true, bone meal grows sugar cane by exactly 1 block.
-  # If false, bone meal grows sugar cane up to the maximum height of 3 blocks at once.
+  # If true, each bone meal grows sugar cane by exactly 1 block.
+  # If false, one bone meal grows sugar cane straight to max-height.
   grow-by-one-block: false
 
-  # Spawn Particles
-  # Whether to spawn particles when sugar cane is bone-mealed.
-  spawn-particles: true
-
-  # Play Sound
-  # Whether to play a sound effect when sugar cane is bone-mealed.
-  play-sound: true
+  # Effects
+  # Whether to show the vanilla bone meal particles and sound when sugar cane grows.
+  # (Replaces spawn-particles and play-sound from 1.0.x.)
+  effects: true
 
   # Dispenser Support
   # Whether dispensers can bone meal sugar cane.
-  # When enabled, a dispenser facing a sugar cane column will grow it just like a player would.
+  # When enabled, a dispenser facing a sugar cane column grows it just like a player would.
   dispenser-support: true
+
+# Messages
+# Use & color codes (e.g. &a, &c, &l). Words in {braces} are filled in by the plugin.
+# Set a message to "" to turn it off.
+messages:
+  no-permission: "&cYou don't have permission to do that."
+  unknown-subcommand: "&cUnknown subcommand '&f{subcommand}&c'. Use &f/{label} help&c to see all commands."
+  reload-success: "&aConfig reloaded."
+  reload-failed: "&cCouldn't reload: config.yml has an error, so the previous settings are still active. Check the console for details."
 
 # Leave these options alone unless you know what you're doing.
 config:
-  version: 1.0.1
+  version: 1.1.0

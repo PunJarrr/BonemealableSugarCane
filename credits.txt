@@ -1,0 +1,6 @@
+Bonemealable Sugar Cane credits
+
+The plugin contains no third-party code or assets. All of its code is MIT licensed (see LICENSE).
+
+Not included in the jar, but used on the README and store pages:
+- devins-badges by intergrav, https://github.com/intergrav/devins-badges (CC0 1.0, no credit required)

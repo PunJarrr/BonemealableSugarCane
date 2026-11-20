@@ -1,0 +1,13 @@
+name: BscSmokeTest
+version: '1'
+main: dev.punjarrr.bonemealablesugarcane.smoketest.SmokeTestPlugin
+api-version: '1.17'
+folia-supported: true
+description: Test-only helper for scripts/smoke-test.sh. Never shipped.
+commands:
+  bsctest:
+    usage: /bsctest <id> <site|cane|fill <n>|power on|off|state>
+    permission: bsctest.use
+permissions:
+  bsctest.use:
+    default: op

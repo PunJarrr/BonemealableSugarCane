@@ -1,112 +1,68 @@
 package dev.punjarrr.bonemealablesugarcane.listener;
 
-import org.bukkit.*;
+import dev.punjarrr.bonemealablesugarcane.config.Settings;
+import dev.punjarrr.bonemealablesugarcane.growth.CaneGrower;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
+import org.bukkit.block.Dispenser;
 import org.bukkit.block.data.Directional;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.function.Supplier;
 
+/** Dispensers firing bone meal at sugar cane. */
 public class DispenserListener implements Listener {
 
-    private static final List<Material> AIR_TYPES = Arrays.asList(
-            Material.AIR, Material.CAVE_AIR, Material.VOID_AIR
-    );
+    private final Supplier<Settings> settings;
+    private final CaneGrower grower;
 
-    private final JavaPlugin plugin;
-    private final Random random = new Random();
-
-    public DispenserListener(JavaPlugin plugin) {
-        this.plugin = plugin;
+    public DispenserListener(Supplier<Settings> settings, CaneGrower grower) {
+        this.settings = settings;
+        this.grower = grower;
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDispense(BlockDispenseEvent event) {
-        if (event.getItem().getType() != Material.BONE_MEAL) return;
-        if (!plugin.getConfig().getBoolean("settings.dispenser-support", true)) return;
-        if (event.getBlock().getType() != Material.DISPENSER) return;
+        if (!settings.get().dispenserSupport()) return;
+        ItemStack dispensed = event.getItem();
+        if (dispensed.getType() != Material.BONE_MEAL) return;
 
         Block dispenser = event.getBlock();
-        BlockFace facing = ((Directional) dispenser.getBlockData()).getFacing();
-        Block target = dispenser.getRelative(facing);
-
+        if (dispenser.getType() != Material.DISPENSER) return;
+        if (!(dispenser.getBlockData() instanceof Directional directional)) return;
+        Block target = dispenser.getRelative(directional.getFacing());
         if (target.getType() != Material.SUGAR_CANE) return;
 
-        // Always cancel to prevent the bone meal being ejected as an item entity
+        // If nothing grew, don't cancel: vanilla then fails as it always does on sugar cane
+        // (fail click, smoke, bone meal kept).
+        if (grower.grow(target, null) != CaneGrower.Result.GROWN) return;
+
+        // Cancelled, the server keeps the bone meal and plays the click and smoke itself,
+        // so we only use up one bone meal here.
         event.setCancelled(true);
+        consumeOne(dispenser, dispensed);
+    }
 
-        // Walk down to the base of the sugar cane column
-        Block base = target;
-        while (base.getRelative(BlockFace.DOWN).getType() == Material.SUGAR_CANE) {
-            base = base.getRelative(BlockFace.DOWN);
-        }
-
-        // Count current height
-        int length = 1;
-        Block top = base;
-        for (int i = 0; i < 3; i++) {
-            Block above = top.getRelative(BlockFace.UP);
-            if (above.getType() != Material.SUGAR_CANE) break;
-            top = above;
-            length++;
-        }
-
-        if (length >= 3) return;
-
-        boolean growByOne = plugin.getConfig().getBoolean("settings.grow-by-one-block", false);
-        int blocksToGrow = growByOne ? 1 : (3 - length);
-
-        boolean grew = false;
-        for (int i = 0; i < blocksToGrow; i++) {
-            Block next = top.getRelative(BlockFace.UP);
-            if (!AIR_TYPES.contains(next.getType())) break;
-            next.setType(Material.SUGAR_CANE);
-            top = next;
-            grew = true;
-        }
-
-        if (!grew) return;
-
-        // Consume one bone meal from the dispenser inventory
-        org.bukkit.block.Dispenser dispenserState = (org.bukkit.block.Dispenser) dispenser.getState();
-        Inventory inv = dispenserState.getInventory();
-        for (int i = 0; i < inv.getSize(); i++) {
-            ItemStack stack = inv.getItem(i);
-            if (stack != null && stack.getType() == Material.BONE_MEAL) {
-                if (stack.getAmount() > 1) {
-                    stack.setAmount(stack.getAmount() - 1);
-                } else {
-                    inv.setItem(i, null);
-                }
-                break;
+    /**
+     * Takes one item matching {@code dispensed} out of the dispenser. The amount is lowered on
+     * the live stack instead of clearing the slot: after a cancelled dispense the server writes
+     * that same stack back into its slot, which would undo a cleared slot and give the last
+     * bone meal back.
+     */
+    private static void consumeOne(Block dispenser, ItemStack dispensed) {
+        if (!(dispenser.getState() instanceof Dispenser state)) return;
+        Inventory inventory = state.getInventory();
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (stack != null && stack.isSimilar(dispensed)) {
+                stack.setAmount(stack.getAmount() - 1);
+                return;
             }
-        }
-
-        World world = target.getWorld();
-
-        if (plugin.getConfig().getBoolean("settings.spawn-particles", true)) {
-            double bx = target.getX();
-            double by = target.getY();
-            double bz = target.getZ();
-            for (int i = 0; i < 15; i++) {
-                world.spawnParticle(Particle.HAPPY_VILLAGER,
-                        bx + random.nextDouble(),
-                        by + random.nextDouble(),
-                        bz + random.nextDouble(),
-                        1);
-            }
-        }
-
-        if (plugin.getConfig().getBoolean("settings.play-sound", true)) {
-            world.playSound(target.getLocation(), Sound.ITEM_BONE_MEAL_USE, 1.0f, 1.0f);
         }
     }
 }

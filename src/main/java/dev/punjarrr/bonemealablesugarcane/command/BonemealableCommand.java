@@ -1,20 +1,21 @@
 package dev.punjarrr.bonemealablesugarcane.command;
 
 import dev.punjarrr.bonemealablesugarcane.BonemealableSugarCane;
-import dev.punjarrr.bonemealablesugarcane.lang.LanguageManager;
-import dev.punjarrr.bonemealablesugarcane.util.Logger;
+import dev.punjarrr.bonemealablesugarcane.config.Messages;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.bukkit.plugin.PluginDescriptionFile;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class BonemealableCommand implements CommandExecutor, TabCompleter {
+
+    private static final String RELOAD_PERMISSION = "bonemealablesugarcane.reload";
 
     private final BonemealableSugarCane plugin;
 
@@ -23,73 +24,72 @@ public class BonemealableCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(@NonNull CommandSender sender, @NonNull Command command, @NonNull String label, String[] args) {
-        if (args.length == 0) {
-            LanguageManager.send(sender, "command.help", "label", label);
-            return true;
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        String sub = args.length == 0 ? "help" : args[0].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "help" -> sendHelp(sender, label);
+            case "reload" -> handleReload(sender);
+            case "version" -> sender.sendMessage(color("&6&l" + description().getName()
+                    + " &7v&f" + description().getVersion()));
+            case "info" -> sendInfo(sender);
+            default -> plugin.settings().messages().send(sender, Messages.UNKNOWN_SUBCOMMAND,
+                    "subcommand", args[0], "label", label);
         }
-
-        switch (args[0].toLowerCase()) {
-            case "reload":
-                handleReload(sender);
-                break;
-            case "version":
-                handleVersion(sender);
-                break;
-            case "info":
-                handleInfo(sender);
-                break;
-            default:
-                LanguageManager.send(sender, "command.unknown-subcommand",
-                        "subcommand", args[0], "label", label);
-                LanguageManager.send(sender, "command.help", "label", label);
-                break;
-        }
-
         return true;
     }
 
+    private void sendHelp(CommandSender sender, String label) {
+        sender.sendMessage(color("&6&l" + description().getName() + " &7v&f" + description().getVersion()));
+        sender.sendMessage(color("&7  /&f" + label + " help    &8- &7Show this list"));
+        if (sender.hasPermission(RELOAD_PERMISSION)) {
+            sender.sendMessage(color("&7  /&f" + label + " reload  &8- &7Reload config.yml"));
+        }
+        sender.sendMessage(color("&7  /&f" + label + " version &8- &7Show the plugin version"));
+        sender.sendMessage(color("&7  /&f" + label + " info    &8- &7Show plugin information"));
+    }
+
     private void handleReload(CommandSender sender) {
-        if (!sender.hasPermission("bonemealablesugarcane.reload")) {
-            LanguageManager.send(sender, "command.no-permission");
+        if (!sender.hasPermission(RELOAD_PERMISSION)) {
+            plugin.settings().messages().send(sender, Messages.NO_PERMISSION);
             return;
         }
-        try {
-            plugin.reload();
-            LanguageManager.send(sender, "command.reload.success");
-            Logger.success("Config reloaded by " + sender.getName() + ".");
-        } catch (Exception e) {
-            LanguageManager.send(sender, "command.reload.failed");
-            Logger.error("Reload failed: " + e.getMessage());
+        if (plugin.reload()) {
+            plugin.settings().messages().send(sender, Messages.RELOAD_SUCCESS);
+            plugin.getLogger().info("Config reloaded by " + sender.getName() + ".");
+        } else {
+            plugin.settings().messages().send(sender, Messages.RELOAD_FAILED);
         }
     }
 
-    private void handleVersion(CommandSender sender) {
-        String version = LanguageManager.getRaw("meta.version");
-        LanguageManager.send(sender, "command.version", "version", version);
-    }
-
-    private void handleInfo(CommandSender sender) {
-        String version = LanguageManager.getRaw("meta.version");
-        String name = LanguageManager.getRaw("plugin.name");
-        String author = LanguageManager.getRaw("plugin.author");
-
-        LanguageManager.send(sender, "command.info.line");
-        LanguageManager.send(sender, "command.info.title", "name", name, "version", version);
-        LanguageManager.send(sender, "command.info.author", "author", author);
-        LanguageManager.send(sender, "command.info.line");
+    private void sendInfo(CommandSender sender) {
+        PluginDescriptionFile description = description();
+        String line = color("&8-----------------------------------------------------");
+        sender.sendMessage(line);
+        sender.sendMessage(color("&6&l" + description.getName() + " &7v&f" + description.getVersion()));
+        sender.sendMessage(color("&7Author: &f" + String.join(", ", description.getAuthors())));
+        if (description.getWebsite() != null) {
+            sender.sendMessage(color("&7Website: &f" + description.getWebsite()));
+        }
+        sender.sendMessage(line);
     }
 
     @Override
-    public List<String> onTabComplete(@NonNull CommandSender sender, @NonNull Command command, @NonNull String alias, String[] args) {
-        if (args.length == 1) {
-            List<String> completions = new ArrayList<>(Arrays.asList("reload", "version", "info"));
-            List<String> result = new ArrayList<>();
-            for (String s : completions) {
-                if (s.startsWith(args[0].toLowerCase())) result.add(s);
-            }
-            return result;
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> result = new ArrayList<>();
+        if (args.length != 1) return result;
+        String prefix = args[0].toLowerCase(Locale.ROOT);
+        for (String sub : List.of("help", "reload", "version", "info")) {
+            if (sub.equals("reload") && !sender.hasPermission(RELOAD_PERMISSION)) continue;
+            if (sub.startsWith(prefix)) result.add(sub);
         }
-        return Collections.emptyList();
+        return result;
+    }
+
+    private PluginDescriptionFile description() {
+        return plugin.getDescription();
+    }
+
+    private static String color(String text) {
+        return ChatColor.translateAlternateColorCodes('&', text);
     }
 }
