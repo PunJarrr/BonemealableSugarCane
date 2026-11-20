@@ -1,3 +1,4 @@
+import io.papermc.hangarpublishplugin.model.Platforms
 import xyz.jpenilla.runpaper.task.RunServer
 import xyz.jpenilla.runtask.service.DownloadsAPIService
 
@@ -5,6 +6,10 @@ plugins {
     id("java-library")
     // run-paper 3.1.0 needs Gradle 9.7+ (see gradle/wrapper/gradle-wrapper.properties)
     id("xyz.jpenilla.run-paper") version "3.1.0"
+    // Uploads to Modrinth (https://modmuss50.github.io/mod-publish-plugin/)
+    id("me.modmuss50.mod-publish-plugin") version "2.2.1"
+    // Uploads to Hangar (https://docs.papermc.io/misc/hangar-publishing/)
+    id("io.papermc.hangar-publish-plugin") version "0.1.4"
 }
 
 repositories {
@@ -12,7 +17,12 @@ repositories {
     maven("https://hub.spigotmc.org/nexus/content/groups/public/")
 }
 
+// A test-only helper plugin for scripts/smoke-test.sh (src/smokeTest). Never part of the release jar.
+val smokeTest: SourceSet by sourceSets.creating
+
 dependencies {
+    "smokeTestCompileOnly"("org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT")
+
     // Compile against the OLDEST version we support (1.17). Newer servers load plugins built on
     // older API; the reverse is not true. If something doesn't compile here, it doesn't exist on
     // 1.17 servers either. Spigot API (not Paper API) so it also runs on Spigot.
@@ -32,6 +42,10 @@ java {
 
 tasks {
     compileJava {
+        options.release = 16
+    }
+
+    named<JavaCompile>("compileSmokeTestJava") {
         options.release = 16
     }
 
@@ -95,6 +109,15 @@ val testServers = listOf(
 val pluginJar = tasks.jar.flatMap { it.archiveFile }
 val serverDirOverride = providers.gradleProperty("serverDir")
 
+// Built into build/smoke-plugin/, so it never ends up next to the release jar in build/libs/.
+val smokeTestJar = tasks.register<Jar>("smokeTestJar") {
+    from(smokeTest.output)
+    archiveFileName = "BscSmokeTest.jar"
+    destinationDirectory = layout.buildDirectory.dir("smoke-plugin")
+}
+// -PsmokeTest adds the helper plugin to a test server (scripts/smoke-test.sh does this).
+val withSmokeTestPlugin = providers.gradleProperty("smokeTest").isPresent
+
 testServers.forEach { server ->
     val serverJava = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(server.javaVersion)
@@ -106,6 +129,7 @@ testServers.forEach { server ->
             .orElse(layout.projectDirectory.dir("run/${server.id}"))
         javaLauncher = serverJava
         jvmArgs("-Xms1G", "-Xmx2G")
+        if (withSmokeTestPlugin) pluginJars(smokeTestJar.flatMap { it.archiveFile })
         when (server.platform) {
             "folia" -> downloadsApiService = DownloadsAPIService.folia(project)
             "purpur" -> {
@@ -142,4 +166,49 @@ tasks.register("testServers") {
     description = "Lists the test servers: id, task name, platform, Minecraft version, Java version."
     val lines = testServers.map { "${it.id} ${it.taskName} ${it.platform} ${it.minecraftVersion} ${it.javaVersion}" }
     doLast { lines.forEach(::println) }
+}
+
+// ---------------------------------------------------------------------------
+// Publishing: run by .github/workflows/publish.yml when a GitHub release is published.
+// Tokens come from the MODRINTH_TOKEN and HANGAR_API_TOKEN environment variables (repository secrets).
+//
+//   ./gradlew publishMods                          -> Modrinth (a dry run when MODRINTH_TOKEN isn't set)
+//   ./gradlew publishPluginPublicationToHangar     -> Hangar
+// ---------------------------------------------------------------------------
+val supportedVersions = providers.gradleProperty("minecraftVersions").get().split(",").map(String::trim)
+val releaseChangelog = providers.environmentVariable("CHANGELOG").orElse("See CHANGELOG.md")
+
+publishMods {
+    val modrinthToken = providers.environmentVariable("MODRINTH_TOKEN")
+    file = tasks.jar.flatMap { it.archiveFile }
+    displayName = "BonemealableSugarCane ${project.version}"
+    version = project.version.toString()
+    changelog = releaseChangelog
+    type = STABLE
+    modLoaders.addAll("spigot", "paper", "purpur", "folia")
+    // Without a token, `publishMods` only checks the configuration.
+    dryRun = modrinthToken.map { false }.orElse(true)
+
+    modrinth {
+        projectId = "9orZw6M7" // modrinth.com/plugin/bonemealable-sugar-cane
+        accessToken = modrinthToken
+        minecraftVersions.addAll(supportedVersions)
+    }
+}
+
+hangarPublish {
+    publications.register("plugin") {
+        id = "BonemealableSugarCane" // hangar.papermc.io/PunJarrr/BonemealableSugarCane
+        version = project.version.toString()
+        channel = "Release"
+        changelog = releaseChangelog
+        apiKey = providers.environmentVariable("HANGAR_API_TOKEN")
+        platforms {
+            // Hangar lists Folia and Purpur under Paper.
+            register(Platforms.PAPER) {
+                jar = tasks.jar.flatMap { it.archiveFile }
+                platformVersions = supportedVersions
+            }
+        }
+    }
 }

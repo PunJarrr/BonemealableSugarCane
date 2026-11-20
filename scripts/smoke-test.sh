@@ -27,7 +27,7 @@ RCON_PORT=25591
 RCON_PASSWORD=smoketest
 START_TIMEOUT=${START_TIMEOUT:-900}
 
-./gradlew -q jar || { echo "build failed"; exit 1; }
+./gradlew -q jar smokeTestJar || { echo "build failed"; exit 1; }
 SERVERS=$(./gradlew -q testServers) || { echo "couldn't list test servers"; exit 1; }
 
 TARGETS=("$@")
@@ -44,54 +44,48 @@ rcon() {
   printf '%s\n' "$out"
 }
 
-# The test site, inside force-loaded chunk 0,0: sugar cane at x=5 z=5 on sand (y=100) next to water,
-# a dispenser at x=6 facing it, and a redstone block placed at x=7 to fire the dispenser.
-CANE_Y=101
+# The test site is built and read by the helper plugin in src/smokeTest (BscSmokeTest, test-only), because
+# Folia's console can't run block commands like /execute if block or /fill. It sits inside force-loaded
+# chunk 0,0: sugar cane at x=5 y=101 z=5 on sand next to water, a dispenser at x=6 facing it, and a
+# redstone block placed at x=7 to fire the dispenser. The dispenser is fired by real redstone.
+rm -f "$OUT/.step"
 
-build_site() {
-  rcon "forceload add 0 0" > /dev/null
-  rcon "fill 2 99 2 9 100 9 minecraft:stone" > /dev/null
-  rcon "fill 2 101 2 9 110 9 minecraft:air" > /dev/null
-  rcon "setblock 5 100 5 minecraft:sand" > /dev/null
-  rcon "setblock 5 100 6 minecraft:water" > /dev/null
-  rcon "setblock 6 101 5 minecraft:dispenser[facing=west]" > /dev/null
+# bsctest <action...>: run a helper action and print its result, read from the server log.
+bsctest() {
+  # Counted in a file: bsctest often runs in a $(...) subshell, where a variable wouldn't keep counting.
+  local step id result=""
+  step=$(( $(cat "$OUT/.step" 2>/dev/null || echo 0) + 1 ))
+  echo "$step" > "$OUT/.step"
+  id="s$step"
+  rcon "bsctest $id $*" > /dev/null
+  for ((w = 0; w < 50; w++)); do
+    result=$(grep -o "BSCTEST $id .*" "$LOG" | head -1 | sed "s/^BSCTEST $id //")
+    [ -n "$result" ] && break
+    sleep 0.2
+  done
+  [ -n "${SMOKE_DEBUG:-}" ] && printf '    bsctest %s -> %s\n' "$*" "${result:-TIMEOUT}" >&2
+  printf '%s\n' "${result:-timeout}"
 }
+
+build_site() { rcon "forceload add 0 0" > /dev/null; bsctest site > /dev/null; }
 
 # reset_cane: a single sugar cane block.
-reset_cane() {
-  rcon "fill 5 102 5 5 110 5 minecraft:air" > /dev/null
-  rcon "setblock 5 $CANE_Y 5 minecraft:sugar_cane" > /dev/null
-}
+reset_cane() { bsctest cane > /dev/null; }
 
 # fill_dispenser <amount>
-fill_dispenser() { rcon "item replace block 6 101 5 container.0 with minecraft:bone_meal $1" > /dev/null; }
+fill_dispenser() { bsctest fill "$1" > /dev/null; }
 
 # fire: power the dispenser once, then remove the power so it can fire again.
 fire() {
-  rcon "setblock 7 101 5 minecraft:redstone_block" > /dev/null
+  bsctest power on > /dev/null
   sleep 1.5
-  rcon "setblock 7 101 5 minecraft:air" > /dev/null
+  bsctest power off > /dev/null
   sleep 0.5
 }
 
-# height: how many sugar cane blocks are stacked from y=101.
-height() {
-  local h=0
-  while [ $h -lt 9 ] && rcon "execute if block 5 $((CANE_Y + h)) 5 minecraft:sugar_cane" | grep -q 'passed'; do
-    h=$((h + 1))
-  done
-  echo $h
-}
-
-# bone_meal: how much bone meal is in the dispenser. Before 1.20.5 the NBT says Count: 63b;
-# from 1.20.5 it says count: 63, and leaves count out when it's 1.
-bone_meal() {
-  local nbt n
-  nbt=$(rcon "data get block 6 101 5 Items")
-  if ! grep -q 'bone_meal' <<< "$nbt"; then echo 0; return; fi
-  n=$(grep -oE '[Cc]ount: ?[0-9]+' <<< "$nbt" | grep -oE '[0-9]+' | head -1)
-  echo "${n:-1}"
-}
+# height: how many sugar cane blocks are stacked from y=101. bone_meal: bone meal left in the dispenser.
+height() { bsctest state | grep -oE 'height=[0-9]+' | cut -d= -f2; }
+bone_meal() { bsctest state | grep -oE 'bonemeal=[0-9]+' | cut -d= -f2; }
 
 # set_config <key> <value>: change one setting in the plugin's config.yml.
 set_config() { perl -i -pe "s/^(\\s+\\Q$1\\E:).*/\$1 $2/" "$CONFIG"; }
@@ -134,7 +128,7 @@ run_target() {
 
   # Fresh world and default config every time; downloaded libraries are kept for speed.
   mkdir -p "$dir"
-  rm -rf "$dir"/world* "$dir/plugins/BonemealableSugarCane"
+  rm -rf "$dir"/world* "$dir/plugins/BonemealableSugarCane" "$dir/plugins/BscSmokeTest"
   echo "eula=true" > "$dir/eula.txt"
   cat > "$dir/server.properties" <<EOF
 server-ip=127.0.0.1
@@ -154,7 +148,7 @@ management-server-port=0
 EOF
 
   : > "$LOG"
-  ( ./gradlew "$task" "-PserverDir=build/smoke/$ID" --console=plain < /dev/null >> "$LOG" 2>&1
+  ( ./gradlew "$task" "-PserverDir=build/smoke/$ID" -PsmokeTest --console=plain < /dev/null >> "$LOG" 2>&1
     echo "GRADLE_EXIT=$?" >> "$LOG" ) &
 
   local status=timeout
