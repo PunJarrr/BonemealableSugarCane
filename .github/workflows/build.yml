@@ -16,14 +16,15 @@ jobs:
     outputs:
       servers: ${{ steps.servers.outputs.servers }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      # v5, not v6: v6 moved caching into a closed-source part with its own terms of use.
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Build and run unit tests
         run: ./gradlew build
@@ -32,7 +33,7 @@ jobs:
         id: servers
         run: echo "servers=$(./gradlew -q testServers | awk '{ print $1 }' | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: BonemealableSugarCane
           path: build/libs/*.jar
@@ -47,9 +48,9 @@ jobs:
         server: ${{ fromJson(needs.build.outputs.servers) }}
     name: smoke-test (${{ matrix.server }})
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: |
@@ -57,12 +58,13 @@ jobs:
             25
             21
 
-      - uses: gradle/actions/setup-gradle@v4
+      # v5, not v6: v6 moved caching into a closed-source part with its own terms of use.
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Smoke test
         run: scripts/smoke-test.sh "${{ matrix.server }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: smoke-test-log-${{ matrix.server }}
