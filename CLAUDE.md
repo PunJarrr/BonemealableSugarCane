@@ -13,21 +13,17 @@ Output jar: `build/libs/BonemealableSugarCane-<version>.jar`. There is no lint s
 
 Unit tests (JUnit 5, test-only dependency) cover the server-free logic: height math, config migration and template splicing, settings validation.
 
-Test servers (run-paper, each in `run/<version>` with the right Java; foojay downloads missing JDKs):
+Test servers (run-paper, each in `run/<id>` with the right Java; foojay downloads missing JDKs). `./gradlew -q testServers` lists them: Paper 26.3 (`runServer`), 1.21.11, 1.20.6, 1.20.4, 1.19.4, 1.18.2, 1.17.1 (`runServer1_17_1`), Folia 26.3 (`runFolia26_3`), Purpur 26.3 (`runPurpur26_3`, jar fetched from the Purpur API). The EULA is not accepted for `run/`; the user does that. `-PserverDir=<dir>` runs a server elsewhere.
 
-| Task | Paper | Java |
-|---|---|---|
-| `./gradlew runServer` | 26.2 | 25 |
-| `./gradlew runServer1_21_11` | 1.21.11 | 21 |
-| `./gradlew runServer1_20_6` | 1.20.6 (oldest supported) | 21 |
+Smoke test: `scripts/smoke-test.sh <id>... | all` boots each server in `build/smoke/<id>/` (fresh world, accepts the EULA there, RCON on 25591) and checks dispenser growth, both grow modes, max-height, last bone meal used, dispenser-support, reload and a broken config, then scans the log. `SMOKE_DEBUG=1` prints every command. The test site is built and read by a test-only helper plugin (`src/smokeTest`, `BscSmokeTest`, jar in `build/smoke-plugin/`, loaded only with `-PsmokeTest`) because Folia's console can't run block commands; it logs `BSCTEST <id> <result>` and the script reads the log. Gotchas: the site must stay inside chunk 0,0, which the script force-loads with `/forceload` (Folia only allows that on its global thread); `pause-when-empty-seconds=-1` is needed on 1.21.2+ or the empty server stops ticking.
 
-Headless smoke test: `(sleep 60; echo stop) | ./gradlew <task> --console=plain > build/smoke/<v>.log`. Give a fresh run dir enough time: Paper 26.2 throws if `stop` arrives before the world has finished generating.
+CI: `.github/workflows/build.yml` builds, then runs the smoke test per server in a matrix. `publish.yml` runs on a published GitHub release (tag must be `v<version>`), uploads to Modrinth (mod-publish-plugin, `publishMods`, dry run without `MODRINTH_TOKEN`) and Hangar (`publishPluginPublicationToHangar`, `HANGAR_API_TOKEN`), and attaches the jar. SpigotMC is manual. Store page texts are in `docs/store/`.
 
 ## Project overview
 
 A Paper/Spigot plugin that adds Bedrock-style bone meal support for sugar cane. Players (either hand) and dispensers can bone meal sugar cane to grow it up to a configurable max height, as close to vanilla bone meal as the Spigot API allows.
 
-Supports Spigot, Paper and Purpur 1.20.5 to 26.x. Compiles against Spigot API `1.20.5` (the oldest supported version) with Java 21. No runtime dependencies.
+Supports Spigot, Paper, Purpur and Folia, Minecraft 1.17 to 26.3, from one jar. Compiles against Spigot API `1.17` (the oldest supported version) to Java 16 class files (`options.release = 16`, built with a Java 21 toolchain). Newer API must be looked up by name with a fallback, like `Effect.BONE_MEAL_USE` in `CaneGrower` (from 1.19.4; older servers get `VILLAGER_PLANT_GROW` plus the bone meal sound). No runtime dependencies. `folia-supported: true` is safe because the plugin only changes blocks inside block events and schedules nothing.
 
 ## Architecture
 
@@ -35,7 +31,7 @@ Supports Spigot, Paper and Purpur 1.20.5 to 26.x. Compiles against Spigot API `1
 
 **Settings.** `config/Settings` is an immutable record validated on load (wrong types or `max-height < 1` log a warning and use the default). `config/Messages` holds the `messages` section with `&` codes translated. Listeners read the current snapshot through a `Supplier<Settings>`.
 
-**Growth.** `growth/CaneGrower` holds all growth logic for both listeners: find the column's base, count height (capped at max-height), find free air above (stopping at the world height limit), fire `BlockFertilizeEvent`, apply the remaining states bottom-up, play `Effect.BONE_MEAL_USE` (15). `growth/GrowthMath` is the pure, unit-tested height math.
+**Growth.** `growth/CaneGrower` holds all growth logic for both listeners: find the column's base, count height (capped at max-height), find free air above (stopping at the world height limit), fire `BlockFertilizeEvent`, apply the remaining states bottom-up, play the bone meal effect (15 particles). `growth/GrowthMath` is the pure, unit-tested height math.
 
 **Listeners.** Both run at `HIGH` with `ignoreCancelled = true`.
 - `SugarCaneListener` (`PlayerInteractEvent`) respects `useItemInHand() == DENY`, skips Adventure and Spectator mode, and on success cancels the event (so the other hand isn't used too), swings the hand and uses up bone meal outside Creative.
@@ -47,7 +43,7 @@ Supports Spigot, Paper and Purpur 1.20.5 to 26.x. Compiles against Spigot API `1
 
 When bumping the version (e.g. `1.1.0` → `1.1.1`):
 
-1. `build.gradle.kts`: `version`
+1. `gradle.properties`: `version` (and `minecraftVersions` if a new Minecraft version is supported; add its test server in `build.gradle.kts`)
 2. `src/main/resources/config.yml`: `config.version`
 3. `CHANGELOG.md`: add an entry
 4. `ConfigUpdater.migrate()`: add an `isOlderThan("x.y.z")` block **only** if an existing value must be renamed or transformed. New keys need no code.
@@ -58,6 +54,7 @@ Add the key to `config.yml` with its default value and a comment, then read and 
 
 ## Known differences from vanilla
 
-- No sculk vibration (`World#sendGameEvent` is Paper-only, not in Spigot 1.20.5).
-- Adventure mode is blocked entirely; Spigot 1.20.5 has no API for the `can_place_on` component.
+- No sculk vibration (`World#sendGameEvent` is Paper-only).
+- Adventure mode is blocked entirely; the Spigot API has no way to check `can_place_on`.
 - On Paper, a successful dispense plays the fail click's pitch. The server picks the click, and changing it would need packet interception.
+- On 1.17 to 1.19.3 the particles and the sound are sent separately (the API has no combined bone meal effect there); they look and sound the same.

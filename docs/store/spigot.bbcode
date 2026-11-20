@@ -1,0 +1,80 @@
+[CENTER][SIZE=7][B]Bonemealable Sugar Cane[/B][/SIZE]
+
+[IMG]https://raw.githubusercontent.com/intergrav/devins-badges/0a3449fd26bf1375d2c5c26f096c8f30aa358766/assets/cozy/supported/paper_64h.png[/IMG] [IMG]https://raw.githubusercontent.com/intergrav/devins-badges/0a3449fd26bf1375d2c5c26f096c8f30aa358766/assets/cozy/supported/spigot_64h.png[/IMG] [IMG]https://raw.githubusercontent.com/intergrav/devins-badges/0a3449fd26bf1375d2c5c26f096c8f30aa358766/assets/cozy/supported/purpur_64h.png[/IMG]
+
+[URL='https://modrinth.com/plugin/bonemealable-sugar-cane'][IMG]https://raw.githubusercontent.com/intergrav/devins-badges/0a3449fd26bf1375d2c5c26f096c8f30aa358766/assets/cozy/available/modrinth_64h.png[/IMG][/URL] [URL='https://hangar.papermc.io/PunJarrr/BonemealableSugarCane'][IMG]https://raw.githubusercontent.com/intergrav/devins-badges/0a3449fd26bf1375d2c5c26f096c8f30aa358766/assets/cozy/available/hangar_64h.png[/IMG][/URL] [URL='https://github.com/PunJarrr/BonemealableSugarCane'][IMG]https://raw.githubusercontent.com/intergrav/devins-badges/0a3449fd26bf1375d2c5c26f096c8f30aa358766/assets/cozy/available/github_64h.png[/IMG][/URL]
+
+In Bedrock Edition you can bone meal sugar cane. [B]Bonemealable Sugar Cane[/B] brings that to Java Edition servers, and keeps it as close to vanilla bone meal as possible.[/CENTER]
+
+[SIZE=5][B]✨ Features[/B][/SIZE]
+[LIST]
+[*][B]Bone meal sugar cane[/B] from either hand, with the vanilla particles, sound and hand swing
+[*][B]Dispenser support[/B] for automatic cane farms
+[*][B]Grow to the top[/B] (3 blocks, like vanilla) [B]or one block at a time[/B]
+[*][B]Plays by the rules:[/B] no bone meal used in Creative, none in Adventure mode, and protection plugins can block it in claims
+[*][B]One jar[/B] for Spigot, Paper, Purpur and Folia, Minecraft [B]1.17 – 26.3[/B]
+[*][B]Lightweight:[/B] no dependencies, nothing to install for players
+[/LIST]
+
+[SIZE=5][B]🔍 Showcase[/B][/SIZE]
+[CENTER][IMG]https://cdn.modrinth.com/data/9orZw6M7/images/9c046c128ec0e6f60e6f3f5c3df81378f7ff27dd.gif[/IMG][/CENTER]
+
+[SIZE=5][B]📦 Supported Versions[/B][/SIZE]
+[LIST]
+[*][B]Spigot, Paper, Purpur:[/B] Minecraft 1.17 – 26.3
+[*][B]Folia:[/B] Minecraft 1.19.4 – 26.3 (Folia only exists from 1.19.4)
+[/LIST]
+One jar works on all of them. Players don't need to install anything.
+
+[SIZE=5][B]⚙️ Configuration[/B][/SIZE]
+All settings are in [ICODE]plugins/BonemealableSugarCane/config.yml[/ICODE]. Change them, then run [ICODE]/bsc reload[/ICODE]. When you update, your settings are kept and a backup of the old config.yml is saved first.
+
+[SPOILER=config.yml]
+[CODE=YAML]settings:
+  # The tallest a sugar cane column can be grown with bone meal. Must be 1 or higher.
+  # Defaults to 3 (vanilla). If you've changed max-growth-height.cane in Paper's
+  # paper-world-defaults.yml, set this to match.
+  max-height: 3
+
+  # If true, each bone meal grows sugar cane by exactly 1 block.
+  # If false, one bone meal grows sugar cane straight to max-height.
+  grow-by-one-block: false
+
+  # Whether to show the vanilla bone meal particles and sound when sugar cane grows.
+  effects: true
+
+  # Whether dispensers can bone meal sugar cane.
+  dispenser-support: true
+
+# Use & color codes (e.g. &a, &c, &l). Words in {braces} are filled in by the plugin.
+# Set a message to "" to turn it off.
+messages:
+  no-permission: "&cYou don't have permission to do that."
+  unknown-subcommand: "&cUnknown subcommand '&f{subcommand}&c'. Use &f/{label} help&c to see all commands."
+  reload-success: "&aConfig reloaded."
+  reload-failed: "&cCouldn't reload: config.yml has an error, so the previous settings are still active. Check the console for details."[/CODE]
+[/SPOILER]
+
+[SIZE=5][B]📚 Commands & Permissions[/B][/SIZE]
+[ICODE]/bonemealablesugarcane[/ICODE] can be shortened to [ICODE]/bsc[/ICODE].
+[LIST]
+[*][ICODE]/bsc help[/ICODE] – list the commands ([ICODE]bonemealablesugarcane.command[/ICODE], everyone)
+[*][ICODE]/bsc version[/ICODE] – show the plugin version ([ICODE]bonemealablesugarcane.command[/ICODE], everyone)
+[*][ICODE]/bsc info[/ICODE] – show plugin information ([ICODE]bonemealablesugarcane.command[/ICODE], everyone)
+[*][ICODE]/bsc reload[/ICODE] – reload config.yml ([ICODE]bonemealablesugarcane.reload[/ICODE], operators)
+[/LIST]
+Using bone meal needs no permission.
+
+[SPOILER=FAQ]
+[B]I'm updating from 1.0.x. Do I need to change anything?[/B]
+No, your settings carry over. The [ICODE]language[/ICODE] setting is gone: messages are now in config.yml, in English, and you can translate them there. [ICODE]spawn-particles[/ICODE] and [ICODE]play-sound[/ICODE] became one [ICODE]effects[/ICODE] option.
+
+[B]Why doesn't it work in Adventure mode?[/B]
+Vanilla doesn't let you use bone meal in Adventure mode either.
+
+[B]Does it work with Paper's max-growth-height.cane?[/B]
+Yes. Set [ICODE]max-height[/ICODE] to the same number.
+[/SPOILER]
+
+[SIZE=5][B]💬 Feedback[/B][/SIZE]
+Found a bug or have an idea? Open an issue on [URL='https://github.com/PunJarrr/BonemealableSugarCane/issues']GitHub[/URL].

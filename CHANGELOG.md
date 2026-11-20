@@ -3,10 +3,12 @@
 All notable changes to BonemealableSugarCane are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [1.1.0] - 2026-10-08
+## [1.1.0] - Unreleased
 
 ### Added
 
+- Minecraft 1.17 to 1.20.4 support. One jar now runs on 1.17 to 26.3.
+- Folia support (Folia exists from 1.19.4).
 - Bone meal works from the off hand (the main hand still goes first, like vanilla) and while sneaking.
 - The hand swings when bone meal is used, like vanilla.
 - `/bsc help` lists the commands.
@@ -35,7 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - After growing cane, the item in the other hand (such as a torch) could also be used in the same click.
 - `/bsc reload` with a broken `config.yml` silently switched to the default settings. It now keeps the previous settings and says so.
 - The help text pointed to `/bsc help`, which didn't exist.
-- Servers on 1.20 to 1.20.4 loaded the plugin and then hit errors; the plugin now declares 1.20.5 as its minimum, so those servers refuse to load it with a clear message.
+- Servers on 1.20 to 1.20.4 loaded the plugin and then hit errors. They are now supported, and servers older than 1.17 refuse to load the plugin with a clear message.
 - Growth stops at the world's height limit.
 - Tab completion no longer suggests `reload` to players who can't use it.
 - Console messages no longer contain color codes.
